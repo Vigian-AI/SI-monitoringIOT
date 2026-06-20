@@ -43,3 +43,4 @@ CREATE TABLE IF NOT EXISTS users (
   INDEX idx_username (username),
   INDEX idx_email (email)
 );
+
