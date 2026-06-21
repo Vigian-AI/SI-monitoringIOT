@@ -6,19 +6,18 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const db = getDB();
-    const [rows] = await db.execute(
-      'SELECT * FROM settings WHERE device_id = ? LIMIT 1',
+    const rowsResult = await db.query(
+      'SELECT * FROM settings WHERE device_id = $1 LIMIT 1',
       ['esp32-001']
     );
-    if (rows.length === 0) {
-      const [result] = await db.execute(
-        'INSERT INTO settings (device_id) VALUES (?)',
+    if (rowsResult.rows.length === 0) {
+      const result = await db.query(
+        'INSERT INTO settings (device_id) VALUES ($1) RETURNING *',
         ['esp32-001']
       );
-      const [newRows] = await db.execute('SELECT * FROM settings WHERE id = ?', [result.insertId]);
-      res.json(newRows[0]);
+      res.json(result.rows[0]);
     } else {
-      res.json(rows[0]);
+      res.json(rowsResult.rows[0]);
     }
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -29,11 +28,19 @@ router.put('/', async (req, res) => {
   const { soil_threshold, pump_max_duration, pump_cooldown, telegram_enabled, auto_water_enabled } = req.body;
   try {
     const db = getDB();
-    await db.execute(
-      'INSERT INTO settings (device_id, soil_threshold, pump_max_duration, pump_cooldown, telegram_enabled, auto_water_enabled) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE soil_threshold = VALUES(soil_threshold), pump_max_duration = VALUES(pump_max_duration), pump_cooldown = VALUES(pump_cooldown), telegram_enabled = VALUES(telegram_enabled), auto_water_enabled = VALUES(auto_water_enabled)',
+    const result = await db.query(
+      `INSERT INTO settings (device_id, soil_threshold, pump_max_duration, pump_cooldown, telegram_enabled, auto_water_enabled)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (device_id) DO UPDATE SET
+         soil_threshold = EXCLUDED.soil_threshold,
+         pump_max_duration = EXCLUDED.pump_max_duration,
+         pump_cooldown = EXCLUDED.pump_cooldown,
+         telegram_enabled = EXCLUDED.telegram_enabled,
+         auto_water_enabled = EXCLUDED.auto_water_enabled
+       RETURNING id`,
       ['esp32-001', soil_threshold, pump_max_duration, pump_cooldown, telegram_enabled ? 1 : 0, auto_water_enabled ? 1 : 0]
     );
-    res.json({ message: 'Settings updated' });
+    res.json({ id: result.rows[0].id, message: 'Settings updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -19,22 +19,24 @@ router.post('/register', async (req, res) => {
 
   try {
     const db = getDB();
-    const [existing] = await db.execute(
-      'SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1',
+    const existingResult = await db.query(
+      'SELECT id FROM users WHERE username = $1 OR email = $2 LIMIT 1',
       [username, email]
     );
 
-    if (existing.length > 0) {
+    if (existingResult.rows.length > 0) {
       return res.status(409).json({ error: 'Username atau email sudah terdaftar' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const [result] = await db.execute(
-      'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
+    const result = await db.query(
+      `INSERT INTO users (username, email, password_hash)
+       VALUES ($1, $2, $3)
+       RETURNING id, username, email, role`,
       [username, email, passwordHash]
     );
 
-    const user = { id: result.insertId, username, email, role: 'user' };
+    const user = result.rows[0];
     const token = signToken(user);
 
     res.status(201).json({
@@ -56,16 +58,16 @@ router.post('/login', async (req, res) => {
 
   try {
     const db = getDB();
-    const [rows] = await db.execute(
-      'SELECT * FROM users WHERE username = ? AND is_active = 1 LIMIT 1',
+    const rowsResult = await db.query(
+      'SELECT * FROM users WHERE username = $1 AND is_active = TRUE LIMIT 1',
       [username]
     );
 
-    if (rows.length === 0) {
+    if (rowsResult.rows.length === 0) {
       return res.status(401).json({ error: 'Username atau password salah' });
     }
 
-    const user = rows[0];
+    const user = rowsResult.rows[0];
     const valid = await bcrypt.compare(password, user.password_hash);
 
     if (!valid) {
@@ -94,16 +96,16 @@ router.get('/me', async (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const db = getDB();
-    const [rows] = await db.execute(
-      'SELECT id, username, email, role, created_at FROM users WHERE id = ? LIMIT 1',
+    const rowsResult = await db.query(
+      'SELECT id, username, email, role, created_at FROM users WHERE id = $1 LIMIT 1',
       [decoded.id]
     );
 
-    if (rows.length === 0) {
+    if (rowsResult.rows.length === 0) {
       return res.status(404).json({ error: 'User tidak ditemukan' });
     }
 
-    res.json({ user: rows[0] });
+    res.json({ user: rowsResult.rows[0] });
   } catch {
     res.status(401).json({ error: 'Token tidak valid' });
   }
