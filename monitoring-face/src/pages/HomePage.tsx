@@ -20,6 +20,7 @@ function getHealthStatus(soil: number) {
 export default function HomePage() {
   const [sensor, setSensor] = useState<SensorData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [watering, setWatering] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/sensor/latest`)
@@ -36,6 +37,20 @@ export default function HomePage() {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleWatering = async () => {
+    setWatering(true);
+    try {
+      await fetch(`${API_BASE_URL}/watering`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration: 20 }),
+      });
+    } catch {
+      alert('Gagal menyiram tanaman');
+    }
+    setTimeout(() => setWatering(false), 2000);
+  };
 
   const health = sensor ? getHealthStatus(sensor.soil_moisture) : getHealthStatus(50);
 
@@ -113,10 +128,23 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section>
-          <button className="w-full bg-emerald-700 text-white py-4 rounded-2xl font-bold text-base shadow-lg shadow-emerald-700/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
-            Siram Semua Tanaman
+<section>
+          <button
+            onClick={handleWatering}
+            disabled={watering}
+            className="w-full bg-emerald-700 text-white py-4 rounded-2xl font-bold text-base shadow-lg shadow-emerald-700/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {watering ? (
+              <>
+                <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                Menyiram...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
+                Siram Semua Tanaman
+              </>
+            )}
           </button>
         </section>
 

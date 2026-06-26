@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { getDB } = require('../config/database');
 const { signToken, JWT_SECRET } = require('../middleware/auth');
+const { UserRepository } = require('../models/user.model');
 
 const router = express.Router();
 
@@ -19,24 +20,15 @@ router.post('/register', async (req, res) => {
 
   try {
     const db = getDB();
-    const existingResult = await db.query(
-      'SELECT id FROM users WHERE username = $1 OR email = $2 LIMIT 1',
-      [username, email]
-    );
+    const userRepo = new UserRepository(db);
+    const existingUser = await userRepo.findByUsernameOrEmail(username, email);
 
-    if (existingResult.rows.length > 0) {
+    if (existingUser) {
       return res.status(409).json({ error: 'Username atau email sudah terdaftar' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const result = await db.query(
-      `INSERT INTO users (username, email, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id, username, email, role`,
-      [username, email, passwordHash]
-    );
-
-    const user = result.rows[0];
+    const user = await userRepo.create({ username, email, passwordHash });
     const token = signToken(user);
 
     res.status(201).json({
@@ -58,16 +50,13 @@ router.post('/login', async (req, res) => {
 
   try {
     const db = getDB();
-    const rowsResult = await db.query(
-      'SELECT * FROM users WHERE username = $1 AND is_active = TRUE LIMIT 1',
-      [username]
-    );
+    const userRepo = new UserRepository(db);
+    const user = await userRepo.findByUsername(username);
 
-    if (rowsResult.rows.length === 0) {
+    if (!user) {
       return res.status(401).json({ error: 'Username atau password salah' });
     }
 
-    const user = rowsResult.rows[0];
     const valid = await bcrypt.compare(password, user.password_hash);
 
     if (!valid) {
@@ -96,16 +85,14 @@ router.get('/me', async (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const db = getDB();
-    const rowsResult = await db.query(
-      'SELECT id, username, email, role, created_at FROM users WHERE id = $1 LIMIT 1',
-      [decoded.id]
-    );
+    const userRepo = new UserRepository(db);
+    const user = await userRepo.findById(decoded.id);
 
-    if (rowsResult.rows.length === 0) {
+    if (!user) {
       return res.status(404).json({ error: 'User tidak ditemukan' });
     }
 
-    res.json({ user: rowsResult.rows[0] });
+    res.json({ user: { id: user.id, username: user.username, email: user.email, role: user.role, created_at: user.created_at } });
   } catch {
     res.status(401).json({ error: 'Token tidak valid' });
   }

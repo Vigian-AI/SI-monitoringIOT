@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config/api';
 
 interface Settings {
@@ -10,16 +10,38 @@ interface Settings {
 }
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<Settings>({
-    soil_threshold: 30,
-    pump_max_duration: 20,
-    pump_cooldown: 20,
-    telegram_enabled: true,
-    auto_water_enabled: true,
-  });
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const r = await fetch(`${API_BASE_URL}/settings`);
+        const data = r.ok ? await r.json() : null;
+        setSettings(data || {
+          soil_threshold: 30,
+          pump_max_duration: 20,
+          pump_cooldown: 20,
+          telegram_enabled: true,
+          auto_water_enabled: true,
+        });
+      } catch {
+        setSettings({
+          soil_threshold: 30,
+          pump_max_duration: 20,
+          pump_cooldown: 20,
+          telegram_enabled: true,
+          auto_water_enabled: true,
+        });
+      }
+      setLoading(false);
+    };
+    loadSettings();
+  }, []);
+
   const handleSave = async () => {
+    if (!settings) return;
     try {
       await fetch(`${API_BASE_URL}/settings`, {
         method: 'PUT',
@@ -34,12 +56,20 @@ export default function SettingsPage() {
   };
 
   const toggle = (key: keyof Settings) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+    setSettings((prev) => prev ? { ...prev, [key]: !prev[key] } : null);
   };
 
   const updateNum = (key: keyof Settings, val: number) => {
-    setSettings((prev) => ({ ...prev, [key]: val }));
+    setSettings((prev) => prev ? { ...prev, [key]: val } : null);
   };
+
+  if (loading || !settings) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-emerald-50/80 to-white flex items-center justify-center">
+        <span className="material-symbols-outlined animate-spin text-emerald-700 text-4xl">progress_activity</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/80 to-white pb-28">
