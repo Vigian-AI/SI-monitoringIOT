@@ -57,6 +57,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Username atau password salah' });
     }
 
+    if (!user.password_hash) {
+      return res.status(401).json({ error: 'Username atau password salah' });
+    }
+
+    if (typeof password !== 'string' || typeof user.password_hash !== 'string') {
+      return res.status(500).json({ error: 'Data login tidak valid, silakan coba lagi' });
+    }
+
     const valid = await bcrypt.compare(password, user.password_hash);
 
     if (!valid) {
@@ -71,7 +79,8 @@ router.post('/login', async (req, res) => {
       token,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Terjadi kesalahan saat login' });
   }
 });
 

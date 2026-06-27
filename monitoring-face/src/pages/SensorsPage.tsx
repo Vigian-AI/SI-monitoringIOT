@@ -1,29 +1,22 @@
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config/api';
-
-interface SensorData {
-  temperature: number;
-  humidity: number;
-  light_intensity: number;
-  soil_moisture: number;
-  pump_status: boolean;
-  created_at: string;
-}
+import { useSensorData } from '../hooks/useSensorData';
+import { useDeviceStatus } from '../hooks/useDeviceStatus';
+import { ConnectionBadge } from '../components/ConnectionBadge';
+import type { SensorData } from '../types';
 
 export default function SensorsPage() {
-  const [sensor, setSensor] = useState<SensorData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { sensor, loading } = useSensorData();
+  const { status: deviceStatus } = useDeviceStatus();
+  const [history, setHistory] = useState<SensorData[]>([]);
   const [range, setRange] = useState<'today' | 'week' | 'month'>('today');
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/sensor/latest`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        setSensor(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+    const limit = range === 'today' ? 24 : range === 'week' ? 50 : 100;
+    fetch(`${API_BASE_URL}/sensor?limit=${limit}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setHistory(Array.isArray(data) ? data : []));
+  }, [range]);
 
   const getStatus = (type: string, val: number) => {
     if (type === 'soil') {
@@ -40,6 +33,14 @@ export default function SensorsPage() {
     return { label: 'STABLE', color: 'bg-gray-100 text-gray-700' };
   };
 
+  const chartData = history
+    .slice(0, 7)
+    .reverse()
+    .map((d) => ({
+      value: d.soil_moisture,
+      label: new Date(d.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+    }));
+
   const ranges = ['today', 'week', 'month'] as const;
 
   return (
@@ -55,9 +56,12 @@ export default function SensorsPage() {
       </header>
 
       <main className="pt-24 px-5 space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold text-emerald-900">Sensors</h2>
-          <p className="text-gray-500 text-sm mt-1">Data sensor real-time dari perangkat Anda</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-emerald-900">Sensors</h2>
+            <p className="text-gray-500 text-sm mt-1">Data sensor real-time dari ESP32</p>
+          </div>
+          <ConnectionBadge online={deviceStatus?.online} loading={!deviceStatus} />
         </div>
 
         <div className="flex bg-emerald-100/60 p-1 rounded-xl w-fit">
@@ -87,7 +91,7 @@ export default function SensorsPage() {
             <div className="mt-4">
               <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Kelembaban Tanah</p>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-4xl font-bold text-emerald-700">{loading ? '--' : sensor?.soil_moisture ?? 0}</span>
+                <span className="text-4xl font-bold text-emerald-700">{loading && !sensor ? '--' : sensor?.soil_moisture ?? 0}</span>
                 <span className="text-lg text-gray-400">%</span>
               </div>
             </div>
@@ -95,7 +99,11 @@ export default function SensorsPage() {
               <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${sensor?.soil_moisture ?? 0}%` }} />
             </div>
             <p className="text-xs text-gray-400 italic mt-3">
-              {sensor && sensor.soil_moisture >= 60 ? 'Kelembaban ideal. Tidak perlu penyiraman.' : 'Tanah membutuhkan air segera.'}
+              {!deviceStatus?.online
+                ? 'Sensor tidak terhubung.'
+                : sensor && sensor.soil_moisture >= 60
+                  ? 'Kelembaban ideal. Tidak perlu penyiraman.'
+                  : 'Tanah membutuhkan air segera.'}
             </p>
           </div>
 
@@ -111,14 +119,18 @@ export default function SensorsPage() {
             <div className="mt-4">
               <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Suhu Udara</p>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-4xl font-bold text-orange-500">{loading ? '--' : sensor?.temperature ?? 0}</span>
+                <span className="text-4xl font-bold text-orange-500">{loading && !sensor ? '--' : sensor?.temperature ?? 0}</span>
                 <span className="text-lg text-gray-400">°C</span>
               </div>
             </div>
             <div className="flex items-end gap-1 h-12 w-full mt-3">
-              {[40, 55, 65, 80, 90, 85, 100].map((h, i) => (
-                <div key={i} className="flex-1 bg-orange-100 rounded-t-sm" style={{ height: `${h}%` }} />
-              ))}
+              {chartData.length > 0
+                ? chartData.map((d, i) => (
+                    <div key={i} className="flex-1 bg-orange-100 rounded-t-sm" style={{ height: `${d.value}%` }} />
+                  ))
+                : [40, 55, 65, 80, 90, 85, 100].map((h, i) => (
+                    <div key={i} className="flex-1 bg-orange-50 rounded-t-sm" style={{ height: `${h}%`, opacity: 0.3 }} />
+                  ))}
             </div>
             <p className="text-xs text-gray-400 italic mt-3">
               {sensor && sensor.temperature >= 18 && sensor.temperature <= 30 ? 'Suhu ideal untuk tanaman.' : 'Suhu di luar rentang optimal.'}
@@ -137,7 +149,7 @@ export default function SensorsPage() {
             <div className="mt-4">
               <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Intensitas Cahaya</p>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-4xl font-bold text-yellow-600">{loading ? '--' : sensor?.light_intensity ?? 0}</span>
+                <span className="text-4xl font-bold text-yellow-600">{loading && !sensor ? '--' : sensor?.light_intensity ?? 0}</span>
                 <span className="text-lg text-gray-400">%</span>
               </div>
             </div>
@@ -155,23 +167,25 @@ export default function SensorsPage() {
 
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-gray-800 text-lg">Riwayat Historis</h3>
-            <button className="flex items-center gap-1 text-sm font-bold text-emerald-700">
-              Laporan Lengkap <span className="material-symbols-outlined text-sm">arrow_forward</span>
-            </button>
+            <h3 className="font-bold text-gray-800 text-lg">Riwayat Kelembaban Tanah</h3>
+            <span className="text-xs text-gray-400">{history.length} data</span>
           </div>
           <div className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-sm">
-            <div className="relative h-48 w-full flex items-end justify-between gap-1">
-              {[40, 55, 65, 80, 90, 75, 60].map((h, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-gray-400 font-medium">{h}%</span>
-                  <div className="w-full bg-emerald-100 rounded-t-lg hover:bg-emerald-200 transition-all" style={{ height: `${h * 1.8}px` }} />
-                  <span className="text-[10px] text-gray-400 font-medium">
-                    {['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'][i]}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {chartData.length === 0 ? (
+              <p className="text-center text-gray-400 text-sm py-8">
+                {deviceStatus?.online ? 'Menunggu data historis...' : 'Tidak ada data. ESP32 belum terhubung.'}
+              </p>
+            ) : (
+              <div className="relative h-48 w-full flex items-end justify-between gap-1">
+                {chartData.map((d, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[10px] text-gray-400 font-medium">{d.value}%</span>
+                    <div className="w-full bg-emerald-100 rounded-t-lg hover:bg-emerald-200 transition-all" style={{ height: `${d.value * 1.8}px` }} />
+                    <span className="text-[10px] text-gray-400 font-medium">{d.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </main>

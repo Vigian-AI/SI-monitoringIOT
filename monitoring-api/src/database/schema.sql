@@ -49,6 +49,42 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 
+CREATE TABLE IF NOT EXISTS devices (
+  id SERIAL PRIMARY KEY,
+  device_id VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL DEFAULT 'Floratech Hub ESP32',
+  last_seen_at TIMESTAMPTZ,
+  wifi_ssid VARCHAR(100),
+  rssi INT,
+  firmware_version VARCHAR(20),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS plants (
+  id SERIAL PRIMARY KEY,
+  device_id VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL DEFAULT 'Monstera',
+  species VARCHAR(100),
+  image_url TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS schedules (
+  id SERIAL PRIMARY KEY,
+  device_id VARCHAR(50) NOT NULL DEFAULT 'esp32-001',
+  label VARCHAR(50) NOT NULL,
+  time VARCHAR(5) NOT NULL,
+  duration_minutes INT NOT NULL DEFAULT 15,
+  days_of_week VARCHAR(50) NOT NULL DEFAULT 'daily',
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  icon VARCHAR(30) DEFAULT 'light_mode',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_schedules_device ON schedules (device_id);
+
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

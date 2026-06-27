@@ -1,14 +1,22 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const { connect, initTables, getDB } = require('./config/database');
-const { authMiddleware } = require('./middleware/auth');
+const { setServices } = require('./services');
 const SensorService = require('./services/sensor.service');
 const SettingsService = require('./services/settings.service');
 const LogsService = require('./services/logs.service');
+const DeviceService = require('./services/device.service');
+const PlantService = require('./services/plant.service');
+const ScheduleService = require('./services/schedule.service');
 const authRoutes = require('./routes/auth.routes');
 const indexRoutes = require('./routes/index.routes');
 const logsRoutes = require('./routes/logs.routes');
 const settingsRoutes = require('./routes/settings.routes');
+const deviceRoutes = require('./routes/device.routes');
+const plantRoutes = require('./routes/plant.routes');
+const scheduleRoutes = require('./routes/schedule.routes');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -20,19 +28,28 @@ app.use('/api', indexRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/settings', settingsRoutes);
-
-let services = {};
+app.use('/api/device', deviceRoutes);
+app.use('/api/plant', plantRoutes);
+app.use('/api/schedules', scheduleRoutes);
 
 function createServices(db) {
-  services = {
-    sensor: new SensorService(db),
+  const device = new DeviceService(db);
+  const sensor = new SensorService(db);
+  sensor.setDeviceService(device);
+
+  const services = {
+    sensor,
     settings: new SettingsService(db),
     logs: new LogsService(db),
+    device,
+    plant: new PlantService(db),
+    schedule: new ScheduleService(db),
   };
+  setServices(services);
   return services;
 }
 
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404).json({ error: 'Endpoint tidak ditemukan' });
 });
 
@@ -53,4 +70,4 @@ async function start() {
 
 start();
 
-module.exports = { services, createServices };
+module.exports = { createServices };

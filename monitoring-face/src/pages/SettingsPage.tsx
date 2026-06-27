@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config/api';
-
-interface Settings {
-  soil_threshold: number;
-  pump_max_duration: number;
-  pump_cooldown: number;
-  telegram_enabled: boolean;
-  auto_water_enabled: boolean;
-}
+import { useDeviceStatus } from '../hooks/useDeviceStatus';
+import { formatLastSeen } from '../utils/health';
+import type { Settings } from '../types';
 
 export default function SettingsPage() {
+  const { status: deviceStatus, loading: deviceLoading } = useDeviceStatus();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
@@ -71,6 +67,8 @@ export default function SettingsPage() {
     );
   }
 
+  const isOnline = deviceStatus?.online ?? false;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/80 to-white pb-28">
       <header className="fixed top-0 w-full z-40 bg-white/80 backdrop-blur-xl shadow-sm shadow-emerald-900/5 px-5 py-3.5 flex justify-between items-center">
@@ -90,34 +88,53 @@ export default function SettingsPage() {
         </div>
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-5 shadow-sm border border-emerald-100/60">
+          <div className={`bg-white/90 backdrop-blur-md rounded-2xl p-5 shadow-sm border ${isOnline ? 'border-emerald-100/60' : 'border-red-100/60'}`}>
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
-              <span className="text-[11px] font-bold text-blue-600 uppercase tracking-widest">Sistem Aktif</span>
+              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-red-400'}`} />
+              <span className={`text-[11px] font-bold uppercase tracking-widest ${isOnline ? 'text-emerald-600' : 'text-red-500'}`}>
+                {deviceLoading ? 'Memuat...' : isOnline ? 'Terhubung' : 'Tidak Terhubung'}
+              </span>
             </div>
-            <h3 className="font-bold text-gray-800 text-lg">Floratech Hub V2</h3>
-            <p className="text-sm text-gray-500 mt-1">Terhubung ke WiFi Rumah</p>
+            <h3 className="font-bold text-gray-800 text-lg">{deviceStatus?.name || 'Floratech Hub ESP32'}</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {isOnline && deviceStatus?.wifi_ssid
+                ? `Terhubung ke ${deviceStatus.wifi_ssid}`
+                : isOnline
+                  ? 'ESP32 aktif mengirim data sensor'
+                  : 'ESP32 tidak mengirim data. Periksa koneksi WiFi dan daya.'}
+            </p>
             <div className="mt-4 flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-400 font-medium">Kekuatan Sinyal</p>
-                <p className="font-bold text-emerald-700">-42 dBm</p>
+                <p className="font-bold text-emerald-700">
+                  {deviceStatus?.rssi != null ? `${deviceStatus.rssi} dBm` : '--'}
+                </p>
               </div>
-              <span className="material-symbols-outlined text-emerald-700 text-4xl" style={{ fontVariationSettings: "'wght' 300" }}>wifi</span>
+              <span className={`material-symbols-outlined text-4xl ${isOnline ? 'text-emerald-700' : 'text-gray-300'}`} style={{ fontVariationSettings: "'wght' 300" }}>
+                {isOnline ? 'wifi' : 'wifi_off'}
+              </span>
             </div>
+            <p className="text-xs text-gray-400 mt-3">
+              Terakhir terhubung: {formatLastSeen(deviceStatus?.last_seen_at ?? null)}
+            </p>
           </div>
           <div className="bg-white/90 backdrop-blur-md rounded-2xl p-5 shadow-sm border border-emerald-100/60">
             <div className="flex justify-between items-start mb-3">
               <div className="p-2 bg-emerald-100 rounded-xl">
                 <span className="material-symbols-outlined text-emerald-700 text-2xl">update</span>
               </div>
-              <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-full">TERBARU</span>
+              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                {isOnline ? 'AKTIF' : 'OFFLINE'}
+              </span>
             </div>
             <h3 className="font-bold text-gray-800 text-lg">Firmware</h3>
-            <p className="text-sm text-gray-500">v3.4.12-stable</p>
+            <p className="text-sm text-gray-500">v{deviceStatus?.firmware_version || '1.0.0'}</p>
             <div className="h-1.5 w-full bg-emerald-100 rounded-full mt-3 overflow-hidden">
-              <div className="h-full bg-emerald-500 rounded-full w-full" />
+              <div className={`h-full rounded-full transition-all ${isOnline ? 'bg-emerald-500 w-full' : 'bg-gray-300 w-1/4'}`} />
             </div>
-            <p className="text-xs text-gray-400 mt-2">Terakhir dicek: 2 jam lalu</p>
+            <p className="text-xs text-gray-400 mt-2">
+              Device ID: {deviceStatus?.device_id || 'esp32-001'}
+            </p>
           </div>
         </section>
 
@@ -129,11 +146,11 @@ export default function SettingsPage() {
             <div className="px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
-                  <span className="material-symbols-outlined text-xl">water_drop</span>
+                  <span className="material-symbols-outlined text-xl">notifications</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-800">Peringatan Air Rendah</p>
-                  <p className="text-xs text-gray-500">Notif saat reservoir di bawah 15%</p>
+                  <p className="font-semibold text-gray-800">Notifikasi Telegram</p>
+                  <p className="text-xs text-gray-500">Kirim alert ke Telegram saat tanah kering</p>
                 </div>
               </div>
               <button
@@ -145,12 +162,12 @@ export default function SettingsPage() {
             </div>
             <div className="px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-50 rounded-xl text-orange-500">
-                  <span className="material-symbols-outlined text-xl">thermostat</span>
+                <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
+                  <span className="material-symbols-outlined text-xl">water_drop</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-800">Suhu Ekstrem</p>
-                  <p className="text-xs text-gray-500">Alert jika suhu {'>'}35°C atau {'<'}5°C</p>
+                  <p className="font-semibold text-gray-800">Penyiraman Otomatis</p>
+                  <p className="text-xs text-gray-500">Siram otomatis saat kelembaban di bawah batas</p>
                 </div>
               </div>
               <button
@@ -209,14 +226,6 @@ export default function SettingsPage() {
               'Simpan Pengaturan'
             )}
           </button>
-        </section>
-
-        <section className="pt-6 border-t border-emerald-100">
-          <button className="w-full py-3 px-5 rounded-2xl border border-red-200 text-red-500 font-bold text-base hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-xl">restart_alt</span>
-            Reset Perangkat Hub
-          </button>
-          <p className="text-center text-xs text-gray-400 mt-3">Menonaktifkan hub akan menghentikan semua jadwal penyiraman otomatis.</p>
         </section>
       </main>
     </div>

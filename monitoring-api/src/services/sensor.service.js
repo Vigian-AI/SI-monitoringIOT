@@ -14,7 +14,19 @@ class SensorService {
       soil_moisture: data.soil_moisture || 0,
       pump_status: data.pump_status ? 1 : 0,
     };
-    return await this.repository.save(sensor);
+    const id = await this.repository.save(sensor);
+    if (this.deviceService) {
+      await this.deviceService.recordHeartbeat(sensor.device_id, {
+        wifi_ssid: data.wifi_ssid,
+        rssi: data.rssi,
+        firmware_version: data.firmware_version,
+      });
+    }
+    return id;
+  }
+
+  setDeviceService(deviceService) {
+    this.deviceService = deviceService;
   }
 
   async getLatestSensorData() {

@@ -31,6 +31,25 @@ class LogsRepository {
     );
     return result.rows.map((row) => new WateringLog(row));
   }
+
+  async getWeeklyStats(deviceId = this.defaultDeviceId) {
+    const result = await this.db.query(
+      `SELECT
+         COUNT(*)::int AS total_sessions,
+         COALESCE(SUM(duration_seconds), 0)::int AS total_seconds
+       FROM watering_logs
+       WHERE device_id = $1
+         AND created_at >= NOW() - INTERVAL '7 days'`,
+      [deviceId]
+    );
+    const row = result.rows[0];
+    const litersEstimate = (row.total_seconds * 0.05).toFixed(1);
+    return {
+      total_sessions: row.total_sessions,
+      total_seconds: row.total_seconds,
+      liters_estimate: parseFloat(litersEstimate),
+    };
+  }
 }
 
 module.exports = { WateringLog, LogsRepository };

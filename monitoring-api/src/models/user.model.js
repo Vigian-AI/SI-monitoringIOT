@@ -3,6 +3,7 @@ class User {
     this.id = data.id || null;
     this.username = data.username;
     this.email = data.email;
+    this.password_hash = data.password_hash || null;
     this.role = data.role || 'user';
     this.is_active = data.is_active !== undefined ? !!data.is_active : true;
     this.created_at = data.created_at || null;
