@@ -49,6 +49,31 @@ class UserRepository {
     );
     return result.rows[0] ? new User(result.rows[0]) : null;
   }
+
+  async getAll() {
+    const result = await this.db.query('SELECT id, username, email, role, is_active, created_at, updated_at FROM users ORDER BY created_at DESC');
+    return result.rows.map((row) => new User(row));
+  }
+
+  async update(id, data) {
+    const result = await this.db.query(
+      `UPDATE users SET
+         username = COALESCE($2, username),
+         email = COALESCE($3, email),
+         role = COALESCE($4, role),
+         is_active = COALESCE($5, is_active),
+         updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, username, email, role, is_active, created_at, updated_at`,
+      [id, data.username, data.email, data.role, data.is_active]
+    );
+    return result.rows[0] ? new User(result.rows[0]) : null;
+  }
+
+  async delete(id) {
+    const result = await this.db.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+    return result.rows[0] || null;
+  }
 }
 
 module.exports = { User, UserRepository };

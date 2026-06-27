@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import SensorsPage from './pages/SensorsPage';
 import SchedulePage from './pages/SchedulePage';
 import SettingsPage from './pages/SettingsPage';
+import AdminPage from './pages/AdminPage';
 import BottomNav from './components/BottomNav';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/sensors" element={<AppLayout><SensorsPage /></AppLayout>} />
         <Route path="/schedule" element={<AppLayout><SchedulePage /></AppLayout>} />
         <Route path="/settings" element={<AppLayout><SettingsPage /></AppLayout>} />
+        <Route path="/admin" element={<AppLayout><AdminPage /></AppLayout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

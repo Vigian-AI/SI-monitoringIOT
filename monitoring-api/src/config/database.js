@@ -131,8 +131,33 @@ class Database {
         FOR EACH ROW EXECUTE FUNCTION set_updated_at()`,
       `DROP TRIGGER IF EXISTS set_users_updated_at ON users`,
       `CREATE TRIGGER set_users_updated_at
-        BEFORE UPDATE ON users
-        FOR EACH ROW EXECUTE FUNCTION set_updated_at()`,
+         BEFORE UPDATE ON users
+         FOR EACH ROW EXECUTE FUNCTION set_updated_at()`,
+      `ALTER TABLE plants
+       ADD CONSTRAINT fk_plants_device
+       FOREIGN KEY (device_id)
+       REFERENCES devices(device_id)
+       ON DELETE CASCADE`,
+      `ALTER TABLE settings
+       ADD CONSTRAINT fk_settings_device
+       FOREIGN KEY (device_id)
+       REFERENCES devices(device_id)
+       ON DELETE CASCADE`,
+      `ALTER TABLE sensor_data
+       ADD CONSTRAINT fk_sensor_device
+       FOREIGN KEY (device_id)
+       REFERENCES devices(device_id)
+       ON DELETE CASCADE`,
+      `ALTER TABLE schedules
+       ADD CONSTRAINT fk_schedule_device
+       FOREIGN KEY (device_id)
+       REFERENCES devices(device_id)
+       ON DELETE CASCADE`,
+      `ALTER TABLE watering_logs
+       ADD CONSTRAINT fk_watering_device
+       FOREIGN KEY (device_id)
+       REFERENCES devices(device_id)
+       ON DELETE CASCADE`,
     ];
 
     for (const statement of statements) {

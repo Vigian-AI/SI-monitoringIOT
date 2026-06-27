@@ -17,6 +17,7 @@ const settingsRoutes = require('./routes/settings.routes');
 const deviceRoutes = require('./routes/device.routes');
 const plantRoutes = require('./routes/plant.routes');
 const scheduleRoutes = require('./routes/schedule.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -31,6 +32,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/device', deviceRoutes);
 app.use('/api/plant', plantRoutes);
 app.use('/api/schedules', scheduleRoutes);
+app.use('/api/admin', adminRoutes);
 
 function createServices(db) {
   const device = new DeviceService(db);
