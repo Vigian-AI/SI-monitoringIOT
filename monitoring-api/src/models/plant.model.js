@@ -22,9 +22,9 @@ class PlantRepository {
        RETURNING *`,
       [
         deviceId,
-        'Monstera',
-        'Monstera Deliciosa',
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuAoHAsTueu_8T3u2xr81melJyEraax_dxdXPCgOahLFDUxbP7qR3pj7FOqtgzopI7Que1gbQlejRvmXm0-ErNpr592Xtjc-zQGZCwzk-77G_jfk51bBuGm6_9WpsTnC9XGKeynl6WJfoA2jbOyVeN1RYPGsT7TS6PYYQfivebwoLbKurYYTlAtoow0G3IFaozDt_2wpeVEzOzz2-_twT-XjkwhHPDRKochjkmBvr25hJQnHmuXFfxhJsxaM0HtqbvpGOBMX1D0dKMk',
+        'tomat',
+        'tomat merah',
+        'https://cdn.pixabay.com/photo/2015/10/05/22/25/funny-973458_1280.jpg',
       ]
     );
     return result.rows[0];

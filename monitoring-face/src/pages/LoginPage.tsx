@@ -1,12 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { API_BASE_URL } from '../config/api';
 
-interface LoginResponse {
-  message: string;
-  user: { id: number; username: string; email: string; role: string };
-  token: string;
-}
-
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -25,12 +19,19 @@ export default function LoginPage() {
         body: JSON.stringify({ username, password }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Login gagal');
+      const text = await res.text();
+      let data: any;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error('Response body:', text);
+        throw new Error('Server mengembalikan data tidak valid');
       }
 
-      const data: LoginResponse = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || data?.message || 'Login gagal');
+      }
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       window.location.href = '/';
@@ -52,7 +53,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="w-full h-40 rounded-2xl overflow-hidden shadow-md mb-5">
             <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAC5ftqfLQgI3feEYqaZRfnepV9AYd819MXN-coVMrE1IKfd7WOmfwo0UNUUfCzIysccLxedENPacFJADMr9W_tJOTQPKDXtXwdl9iXVJlb2mwbzCp92h-_rQWQkHKMckDR4G1MTrZtpV0ErM7EDZuFtK7PqRDzrbfbSnDuIkdc98MOx-LZ_E2_pkZ5d-Qr_--crHz4mVuQ0qouvjFAnx2WkegdRkQm6GIwmQ6NJq_Ym3EJuXVthIaPEByRv7s8mj1Nqh8V5V2qWkam"
+              src="https://thumbs.dreamstime.com/b/forest-tree-kebon-raya-bogor-indonesia-beautiful-262308089.jpg"
               alt="Floratech"
               className="w-full h-full object-cover"
             />

@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'smart-farming-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = '7d';
 
 function signToken(user) {

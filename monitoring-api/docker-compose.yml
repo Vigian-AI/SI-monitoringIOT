@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  monitoring-api:
+    image: node:20-alpine
+    container_name: monitoring-api
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./src:/app/src
+    env_file: .env
+    ports:
+      - "3009:3009"
+    command: sh -c "npm init -y && npm install express cors dotenv jsonwebtoken bcrypt pg && node src/server.js"
+    environment:
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+      - DB_USER=vigian
+      - DB_PASSWORD=passwordku431221
+      - DB_NAME=smart_farming
+      - JWT_SECRET=5liaaBTezhBFbTSqdB14PaexEvIt693iucBOg3FvT8s=

@@ -133,31 +133,41 @@ class Database {
       `CREATE TRIGGER set_users_updated_at
          BEFORE UPDATE ON users
          FOR EACH ROW EXECUTE FUNCTION set_updated_at()`,
+`ALTER TABLE plants
+        DROP CONSTRAINT IF EXISTS fk_plants_device`,
       `ALTER TABLE plants
-       ADD CONSTRAINT fk_plants_device
-       FOREIGN KEY (device_id)
-       REFERENCES devices(device_id)
-       ON DELETE CASCADE`,
+        ADD CONSTRAINT fk_plants_device
+        FOREIGN KEY (device_id)
+        REFERENCES devices(device_id)
+        ON DELETE CASCADE`,
       `ALTER TABLE settings
-       ADD CONSTRAINT fk_settings_device
-       FOREIGN KEY (device_id)
-       REFERENCES devices(device_id)
-       ON DELETE CASCADE`,
+        DROP CONSTRAINT IF EXISTS fk_settings_device`,
+      `ALTER TABLE settings
+        ADD CONSTRAINT fk_settings_device
+        FOREIGN KEY (device_id)
+        REFERENCES devices(device_id)
+        ON DELETE CASCADE`,
       `ALTER TABLE sensor_data
-       ADD CONSTRAINT fk_sensor_device
-       FOREIGN KEY (device_id)
-       REFERENCES devices(device_id)
-       ON DELETE CASCADE`,
+        DROP CONSTRAINT IF EXISTS fk_sensor_device`,
+      `ALTER TABLE sensor_data
+        ADD CONSTRAINT fk_sensor_device
+        FOREIGN KEY (device_id)
+        REFERENCES devices(device_id)
+        ON DELETE CASCADE`,
       `ALTER TABLE schedules
-       ADD CONSTRAINT fk_schedule_device
-       FOREIGN KEY (device_id)
-       REFERENCES devices(device_id)
-       ON DELETE CASCADE`,
+        DROP CONSTRAINT IF EXISTS fk_schedule_device`,
+      `ALTER TABLE schedules
+        ADD CONSTRAINT fk_schedule_device
+        FOREIGN KEY (device_id)
+        REFERENCES devices(device_id)
+        ON DELETE CASCADE`,
       `ALTER TABLE watering_logs
-       ADD CONSTRAINT fk_watering_device
-       FOREIGN KEY (device_id)
-       REFERENCES devices(device_id)
-       ON DELETE CASCADE`,
+        DROP CONSTRAINT IF EXISTS fk_watering_device`,
+      `ALTER TABLE watering_logs
+        ADD CONSTRAINT fk_watering_device
+        FOREIGN KEY (device_id)
+        REFERENCES devices(device_id)
+        ON DELETE CASCADE`,
     ];
 
     for (const statement of statements) {
