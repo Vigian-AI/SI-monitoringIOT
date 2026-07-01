@@ -6,11 +6,13 @@ services:
     restart: unless-stopped
     working_dir: /app
     volumes:
-      - ./src:/app/src
+      - .:/app
     env_file: .env
     ports:
       - "3009:3009"
-    command: sh -c "npm init -y && npm install express cors dotenv jsonwebtoken bcrypt pg && node src/server.js"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: node src/server.js
     environment:
       - DB_HOST=host.docker.internal
       - DB_PORT=5432

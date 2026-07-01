@@ -1,4 +1,5 @@
 const { ScheduleRepository } = require('../models/schedule.model');
+const { getServices } = require('../services');
 
 class ScheduleService {
   constructor(db) {
@@ -45,30 +46,32 @@ class ScheduleService {
 
     return next;
   }
+
+  async triggerScheduledWatering() {
+    const schedules = await this.getAll();
+    const next = this.getNextSchedule(schedules);
+
+    if (next) {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const [h, m] = next.time.split(':').map(Number);
+      const scheduleMinutes = h * 60 + m;
+      let diff = scheduleMinutes - currentMinutes;
+      if (diff <= 0) diff += 24 * 60;
+
+      if (diff < 2) {
+        try {
+          console.log(`[SCHEDULE] Triggering schedule: ${next.label} (${next.duration_minutes} min)`);
+          await getServices().commands.createWateringCommand(
+            next.duration_minutes * 60,
+            next.device_id
+          );
+        } catch (error) {
+          console.error('Failed to create watering command:', error);
+        }
+      }
+    }
+  }
 }
 
 module.exports = ScheduleService;
-
-// Temporary interval for demonstration purposes. In production, use a more robust scheduler (e.g., node-cron).
-// This interval should be managed or started from server.js for better control.
-// For now, starting it here to make the functionality available.
-// NOTE: This will start as soon as the module is required.
-(async () => {
-  if (process.env.NODE_ENV !== 'test') { // Avoid running in tests
-    const db = require('../config/database').getDB();
-    if (db) {
-      const scheduleService = new ScheduleService(db);
-      setInterval(async () => {
-        try {
-          await scheduleService.triggerScheduledWatering();
-        } catch (error) {
-          console.error('Error in schedule trigger interval:', error);
-        }
-      }, 60000); // Check every minute
-      console.log('Scheduled watering trigger interval started.');
-    } else {
-      console.warn('Database not available, schedule trigger interval not started.');
-    }
-  }
-})();
-

@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const { connect, initTables, getDB } = require('./config/database');
@@ -45,9 +47,23 @@ function createServices(db) {
     device,
     plant: new PlantService(db),
     schedule: new ScheduleService(db),
+    commands: new CommandsService(db),
   };
   setServices(services);
   return services;
+}
+
+function startSchedulePolling() {
+  setInterval(async () => {
+    try {
+      const services = getServices();
+      if (services.schedule) {
+        await services.schedule.triggerScheduledWatering();
+      }
+    } catch (error) {
+      console.error('Error in schedule polling:', error);
+    }
+  }, 60000);
 }
 
 app.use((_req, res) => {
@@ -59,6 +75,7 @@ async function start() {
     await connect();
     await initTables();
     createServices(getDB());
+    startSchedulePolling();
   } catch (err) {
     console.error('Gagal inisialisasi database:', err.message);
     console.log('Server tetap berjalan tanpa database');

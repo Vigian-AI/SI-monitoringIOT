@@ -7,6 +7,26 @@ router.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
 });
 
+router.post('/sensor', async (req, res) => {
+  const { device_id, temperature, humidity, light_intensity, soil_moisture, pump_status, wifi_ssid, rssi, firmware_version } = req.body;
+  try {
+    const id = await getServices().sensor.saveSensorData({
+      device_id,
+      temperature,
+      humidity,
+      light_intensity,
+      soil_moisture,
+      pump_status,
+      wifi_ssid,
+      rssi,
+      firmware_version,
+    });
+    res.status(201).json({ id, message: 'Data tersimpan' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/sensor/latest', async (req, res) => {
   try {
     const data = await getServices().sensor.getLatestSensorData();
@@ -20,7 +40,13 @@ router.get('/sensor/pending', async (req, res) => {
   const { limit = 10 } = req.query;
   try {
     const commands = await getServices().commands.getPendingCommands();
-    res.json(commands.slice(0, parseInt(limit)));
+    const formatted = commands.slice(0, parseInt(limit)).map(cmd => ({
+      id: cmd.id,
+      type: cmd.type,
+      duration: cmd.payload?.duration || 20,
+      created_at: cmd.created_at
+    }));
+    res.json(formatted);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
