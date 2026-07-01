@@ -127,7 +127,7 @@ export default function HomePage() {
         <section>
           <button
             onClick={handleWatering}
-            disabled={watering || !deviceStatus?.online}
+            disabled={watering}
             className="w-full bg-emerald-700 text-white py-4 rounded-2xl font-bold text-base shadow-lg shadow-emerald-700/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {watering ? (

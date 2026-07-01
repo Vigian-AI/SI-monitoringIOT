@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
 const { connect, initTables, getDB } = require('./config/database');
@@ -10,6 +8,7 @@ const LogsService = require('./services/logs.service');
 const DeviceService = require('./services/device.service');
 const PlantService = require('./services/plant.service');
 const ScheduleService = require('./services/schedule.service');
+const CommandsService = require('./services/commands.service');
 const authRoutes = require('./routes/auth.routes');
 const indexRoutes = require('./routes/index.routes');
 const logsRoutes = require('./routes/logs.routes');

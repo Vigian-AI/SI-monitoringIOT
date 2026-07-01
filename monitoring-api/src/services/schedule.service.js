@@ -48,3 +48,27 @@ class ScheduleService {
 }
 
 module.exports = ScheduleService;
+
+// Temporary interval for demonstration purposes. In production, use a more robust scheduler (e.g., node-cron).
+// This interval should be managed or started from server.js for better control.
+// For now, starting it here to make the functionality available.
+// NOTE: This will start as soon as the module is required.
+(async () => {
+  if (process.env.NODE_ENV !== 'test') { // Avoid running in tests
+    const db = require('../config/database').getDB();
+    if (db) {
+      const scheduleService = new ScheduleService(db);
+      setInterval(async () => {
+        try {
+          await scheduleService.triggerScheduledWatering();
+        } catch (error) {
+          console.error('Error in schedule trigger interval:', error);
+        }
+      }, 60000); // Check every minute
+      console.log('Scheduled watering trigger interval started.');
+    } else {
+      console.warn('Database not available, schedule trigger interval not started.');
+    }
+  }
+})();
+

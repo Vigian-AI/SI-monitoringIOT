@@ -62,6 +62,15 @@ class Database {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )`,
       `CREATE INDEX IF NOT EXISTS idx_watering_logs_device_created ON watering_logs (device_id, created_at DESC)`,
+      `CREATE TABLE IF NOT EXISTS commands (
+        id SERIAL PRIMARY KEY,
+        device_id VARCHAR(50) NOT NULL DEFAULT 'esp32-001',
+        type VARCHAR(20) NOT NULL,
+        payload JSONB,
+        executed BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_commands_device_pending ON commands (device_id, executed, created_at DESC)`,
       `CREATE TABLE IF NOT EXISTS settings (
         id SERIAL PRIMARY KEY,
         device_id VARCHAR(50) NOT NULL DEFAULT 'esp32-001',
@@ -165,6 +174,13 @@ class Database {
         DROP CONSTRAINT IF EXISTS fk_watering_device`,
       `ALTER TABLE watering_logs
         ADD CONSTRAINT fk_watering_device
+        FOREIGN KEY (device_id)
+        REFERENCES devices(device_id)
+        ON DELETE CASCADE`,
+      `ALTER TABLE commands
+        DROP CONSTRAINT IF EXISTS fk_commands_device`,
+      `ALTER TABLE commands
+        ADD CONSTRAINT fk_commands_device
         FOREIGN KEY (device_id)
         REFERENCES devices(device_id)
         ON DELETE CASCADE`,
